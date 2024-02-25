@@ -481,8 +481,8 @@ Analysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	}
 
 	nPV = PVInfo->size();	
-    t.FillIntBranch("nPV", nPV);
-
+	t.FillIntBranch("nPV", nPV);
+	tree->Fill();
 
 #ifdef THIS_IS_AN_EVENT_EXAMPLE
    Handle<ExampleData> pIn;
