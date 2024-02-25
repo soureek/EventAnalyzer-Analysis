@@ -221,6 +221,7 @@ Analysis::Analysis(const edm::ParameterSet& iConfig)
 	t.InitFloatArray("pfCand_Eta", "npfCands");
 	t.InitFloatArray("pfCand_Phi", "npfCands");
 	t.InitFloatArray("pfCand_E", "npfCands");
+	t.InitFloatArray("pfCand_M", "npfCands");
 
 	
 // GenJets
@@ -272,9 +273,9 @@ Analysis::Analysis(const edm::ParameterSet& iConfig)
     t.InitFloatArray("recoJetAK8_Phi", "nrecoJetsAK8");
     t.InitFloatArray("recoJetAK8_E", "nrecoJetsAK8");    
 
-	t.InitIntArray("recoJetAK8_hasGenJet","nrecoJetsAK8");
-	t.InitIntArray("recoJetAK8_GenJetAK8_idx","nrecoJetsAK8");
-	t.InitIntArray("recoJetAK8_GenJetAK8_dR","nrecoJetsAK8");	
+    t.InitIntArray("recoJetAK8_hasGenJet","nrecoJetsAK8");
+    t.InitIntArray("recoJetAK8_GenJetAK8_idx","nrecoJetsAK8");
+    t.InitIntArray("recoJetAK8_GenJetAK8_dR","nrecoJetsAK8");	
     
 
 /*
@@ -417,13 +418,15 @@ Analysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     
     int npfcands=0;
     for(auto cand=pfCands->begin(); cand != pfCands->end(); ++cand){
-		if(cand->pt() < pt_cand || abs(cand->eta())> 4.0) continue;
+	if(cand->pt() < pt_cand || abs(cand->eta())> 4.0) continue;
         t.FillFloatArray("pfCand_Pt",   npfcands, cand->pt());
         t.FillFloatArray("pfCand_Eta",  npfcands, cand->eta());
         t.FillFloatArray("pfCand_Phi",  npfcands, cand->phi());
         t.FillFloatArray("pfCand_E",  npfcands, cand->energy());
-        t.FillFloatArray("pfCand_M",  npfcands, cand->mass());        
-	}
+        t.FillFloatArray("pfCand_M",  npfcands, cand->mass());
+	npfcands++;
+   }
+   t.FillIntBranch("npfCands",npfcands);
 		    
 /*    int nrecoJetsDR = 0;
     for(auto j = recoJetsDR->begin(); j != recoJetsDR->end(); ++j)
