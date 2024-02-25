@@ -150,7 +150,11 @@ class Analysis : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
 		unsigned int nPV, nTruePU;
 		 
 		bool isMC;
-		double pf_met, puppi_met;
+		
+		int nPFJets, nPuppiJets, nrecoJetsAK8, npfcands, nGenJets, nGenJetsAK8;
+		int foundGenJet, idx;
+
+		double pf_met, puppi_met, pf_met_phi, puppi_met_phi;
 
 		double pt_cand, pt_jet;
 		
@@ -179,7 +183,7 @@ Analysis::Analysis(const edm::ParameterSet& iConfig)
 	pt_jet =iConfig.getParameter<double>("Jet_Pt_THR");
 
 // get PU info token
-   PVsrc_ = consumes<std::vector<reco::Vertex>>(edm::InputTag("offlineSlimmedPrimaryVertices"));
+	PVsrc_ = consumes<std::vector<reco::Vertex>>(edm::InputTag("offlineSlimmedPrimaryVertices"));
    
 // get PF cand token
 	pfCandsToken_ = consumes<std::vector<pat::PackedCandidate>>(edm::InputTag("packedPFCandidates"));
@@ -208,9 +212,9 @@ Analysis::Analysis(const edm::ParameterSet& iConfig)
 	tree = (TTree*) fs->make<TTree>("Events", "events");
 
 // event ids
-    t.InitIntBranch("runNumber");
-    t.InitIntBranch("eventNumber");
-    t.InitIntBranch("lumiBlock");
+	t.InitIntBranch("runNumber");
+	t.InitIntBranch("eventNumber");
+	t.InitIntBranch("lumiBlock");
 
 // PU info
 	t.InitIntBranch("nPV");
@@ -221,11 +225,55 @@ Analysis::Analysis(const edm::ParameterSet& iConfig)
 	t.InitFloatArray("pfCand_Eta", "npfCands");
 	t.InitFloatArray("pfCand_Phi", "npfCands");
 	t.InitFloatArray("pfCand_E", "npfCands");
-
+	t.InitFloatArray("pfCand_M", "npfCands");
+	t.InitFloatArray("pfCand_PuppiWeight", "npfCands");
+	t.InitFloatArray("pfCand_PuppiWeightNoLep", "npfCands");
 	
-// GenJets
+
+
+// PFjet values
+	t.InitIntBranch("nPFJets");
+	t.InitFloatArray("PFJet_Pt",  "nPFJets");
+	t.InitFloatArray("PFJet_Eta", "nPFJets");
+	t.InitFloatArray("PFJet_Phi", "nPFJets");
+	t.InitFloatArray("PFJet_E", "nPFJets");    
+	t.InitFloatArray("PFJet_M", "nPFJets");
+	
+// Puppi jet values
+
+	t.InitIntBranch("nPuppiJets");
+	t.InitFloatArray("PuppiJet_Pt",  "nPuppiJets");
+	t.InitFloatArray("PuppiJet_Eta", "nPuppiJets");
+	t.InitFloatArray("PuppiJet_Phi", "nPuppiJets");
+	t.InitFloatArray("PuppiJet_E", "nPuppiJets");   
+	t.InitFloatArray("PuppiJet_M", "nPuppiJets");  
+
+// AK8 jet values
+		
+	t.InitIntBranch("nrecoJetsAK8");
+	t.InitFloatArray("recoJetAK8_Pt",  "nrecoJetsAK8");
+	t.InitFloatArray("recoJetAK8_Eta", "nrecoJetsAK8");
+	t.InitFloatArray("recoJetAK8_Phi", "nrecoJetsAK8");
+	t.InitFloatArray("recoJetAK8_E", "nrecoJetsAK8");
+	t.InitFloatArray("recoJetAK8_M", "nrecoJetsAK8");    
+ 	
+// Gen Info 
 	if(isMC){
 		t.InitIntBranch("nTruePU");
+
+		t.InitIntArray("PFJet_partonFlav", "nPFJets");
+		t.InitIntArray("PFJet_hadronFlav", "nPFJets");
+		t.InitIntArray("PFJet_hasGenJet","nPFJets");
+		t.InitIntArray("PFJet_GenJet_idx","nPFJets");
+		t.InitFloatArray("PFJet_GenJet_dR","nPFJets");
+
+//		t.InitIntArray("PuppiJet_partonFlav", "nPuppiJets");
+//		t.InitIntArray("PuppiJet_hadronFlav", "nPuppiJets");
+		
+		t.InitIntArray("recoJetAK8_hasGenJet","nrecoJetsAK8");
+		t.InitIntArray("recoJetAK8_GenJetAK8_idx","nrecoJetsAK8");
+		t.InitFloatArray("recoJetAK8_GenJetAK8_dR","nrecoJetsAK8");	
+
 
 		t.InitIntBranch("nGenJets");
 		t.InitFloatArray("GenJet_Pt",  "nGenJets");
@@ -238,59 +286,29 @@ Analysis::Analysis(const edm::ParameterSet& iConfig)
 		t.InitFloatArray("GenJetAK8_Pt",  "nGenJetsAK8");
 		t.InitFloatArray("GenJetAK8_Eta", "nGenJetsAK8");
 		t.InitFloatArray("GenJetAK8_Phi", "nGenJetsAK8");
-		t.InitIntArray(  "GenJetAK8_E",  "nGenJetsAK8");
+		t.InitFloatArray("GenJetAK8_E",  "nGenJetsAK8");
 	}
 	
-    // PFjet values
-	t.InitIntBranch("nPFJets");
-	t.InitFloatArray("PFJet_Pt",  "nPFJets");
-	t.InitFloatArray("PFJet_Eta", "nPFJets");
-	t.InitFloatArray("PFJet_Phi", "nPFJets");
-	t.InitFloatArray("PFJet_E", "nPFJets");    
-	t.InitIntArray("PFJet_partonFlav", "nPFJets");
-	t.InitIntArray("PFJet_hadronFlav", "nPFJets");
-	t.InitIntArray("PFJet_hasGenJet","nPFJets");
-	t.InitIntArray("PFJet_GenJet_idx","nPFJets");
-	t.InitIntArray("PFJet_GenJet_dR","nPFJets");	
-	
-	// Puppi jet values
-
-	t.InitIntBranch("nPuppiJets");
-	t.InitFloatArray("PuppiJet_Pt",  "nPuppiJets");
-	t.InitFloatArray("PuppiJet_Eta", "nPuppiJets");
-	t.InitFloatArray("PuppiJet_Phi", "nPuppiJets");
-	t.InitFloatArray("PuppiJet_E", "nPuppiJets");    
-//  t.InitIntArray("PuppiJet_partonFlav", "nPuppiJets");
-//  t.InitIntArray("PuppiJet_hadronFlav", "nPuppiJets");
-
-
-	// AK8 jet values
-		
-    t.InitIntBranch("nrecoJetsAK8");
-    t.InitFloatArray("recoJetAK8_Pt",  "nrecoJetsAK8");
-    t.InitFloatArray("recoJetAK8_Eta", "nrecoJetsAK8");
-    t.InitFloatArray("recoJetAK8_Phi", "nrecoJetsAK8");
-    t.InitFloatArray("recoJetAK8_E", "nrecoJetsAK8");    
-
-	t.InitIntArray("recoJetAK8_hasGenJet","nrecoJetsAK8");
-	t.InitIntArray("recoJetAK8_GenJetAK8_idx","nrecoJetsAK8");
-	t.InitIntArray("recoJetAK8_GenJetAK8_dR","nrecoJetsAK8");	
-    
-
 /*
-	// DR jet values
-    t.InitIntBranch("nrecoJetsDR");
-    t.InitFloatArray("recoJetDR_Pt",  "nrecoJetsDR");
-    t.InitFloatArray("recoJetDR_Eta", "nrecoJetsDR");
-    t.InitFloatArray("recoJetDR_Phi", "nrecoJetsDR");
-    t.InitFloatArray("recoJetDR_E", "nrecoJetsDR");
-    t.InitFloatArray("recoJetDR_Radius", "nrecoJetsDR");
+// DR jet values
+	t.InitIntBranch("nrecoJetsDR");
+	t.InitFloatArray("recoJetDR_Pt",  "nrecoJetsDR");
+	t.InitFloatArray("recoJetDR_Eta", "nrecoJetsDR");
+	t.InitFloatArray("recoJetDR_Phi", "nrecoJetsDR");
+	t.InitFloatArray("recoJetDR_E", "nrecoJetsDR");
+	t.InitFloatArray("recoJetDR_Radius", "nrecoJetsDR");
 */
 	// MET values
 	
 	t.InitFloatBranch("pfMET");
-	t.InitFloatBranch("puppiMET");
+	t.InitFloatBranch("pfMET_Phi");
 
+	t.InitFloatBranch("puppiMET");
+	t.InitFloatBranch("puppiMET_Phi");
+
+    t.SetTreeBranches(tree);
+
+	std::cout<<"Starting Analysis"<<std::endl;
 }
 
 
@@ -312,6 +330,7 @@ void
 Analysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
 	using namespace edm;
+	t.SetDefaultValues();
 	
 	t.FillIntBranch("eventNumber",iEvent.id().event());
 	t.FillIntBranch("runNumber",iEvent.id().run());
@@ -320,8 +339,9 @@ Analysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 // get gen jets
 	if(isMC){
 //		iEvent.getByToken(genPartToken_, genParticles);
-		iEvent.getByToken(genJetsToken_,    genJets);
-		iEvent.getByToken(genJetsAK8Token_,    genJetsAK8);
+		iEvent.getByToken(genJetsToken_, genJets);
+		iEvent.getByToken(genJetsAK8Token_,  genJetsAK8);
+		iEvent.getByToken(PUsrc_, PUInfo);
 	}
 	
 // get reco jets
@@ -337,94 +357,132 @@ Analysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	iEvent.getByToken(puppimetToken_, puppiMET);
 	
 // get PU info
-	iEvent.getByToken(PUsrc_, PUInfo);
 	iEvent.getByToken(PVsrc_, PVInfo);
-	
-	
+		
 //	iEvent.getByToken(tagInfoToken_,       tagInfo);
 
-    int nPFJets = 0;
-    for(auto j = pfJets->begin(); j != pfJets->end(); ++j){
-        // jet selection
-        if(j->pt() < 10. || abs(j->eta()) > 4.0) continue;
-        t.FillFloatArray("PFJet_Pt",   nPFJets, j->pt());
-        t.FillFloatArray("PFJet_Eta",  nPFJets, j->eta());
-        t.FillFloatArray("PFJet_Phi",  nPFJets, j->phi());
-        t.FillFloatArray("PFJet_E",  nPFJets, j->energy());
-        t.FillFloatArray("PFJet_M",  nPFJets, j->mass());
-           
-        t.FillFloatArray("PFJet_partonFlav",  nPFJets, j->partonFlavour());   
-        t.FillFloatArray("PFJet_hadronFlav",  nPFJets, j->hadronFlavour()); 
-             
-        int foundGenJet = 0;
-        for (auto gj = genJets->begin(); gj != genJets->end(); ++gj)
-        {
-            float dR = ROOT::Math::VectorUtil::DeltaR(j->p4(), gj->p4());
-            if(dR < dRthreshold)
-            {
-                foundGenJet = 1;
-                // fill gen jet info
-                t.FillFloatArray("PFJet_GenJet_DeltaR",  nPFJets, dR);
-                t.FillIntArray(  "PFJet_GenJet_idx", nPFJets, gj - genJets->begin());
-                break;
-            }
-        }
-        t.FillIntArray("PFJet_hasGenJet", nPFJets, foundGenJet);
-        nPFJets++;
-	}
-	t.FillIntBranch("nPFJets", nPFJets);
-	
-    int nPuppiJets = 0;
-    for(auto j = puppiJets->begin(); j != puppiJets->end(); ++j){
-        // jet selection
-        if(j->pt() < pt_jet || abs(j->eta()) > 4.0) continue;
-        t.FillFloatArray("PuppiJet_Pt",   nPuppiJets, j->pt());
-        t.FillFloatArray("PuppiJet_Eta",  nPuppiJets, j->eta());
-        t.FillFloatArray("PuppiJet_Phi",  nPuppiJets, j->phi());
-        t.FillFloatArray("PuppiJet_E",  nPuppiJets, j->energy());
-        t.FillFloatArray("PuppiJet_M",  nPuppiJets, j->mass());        
-        nPuppiJets++;
-    }
-    t.FillIntBranch("nPuppiJets", nPuppiJets);
+	if(pfJets->size()==0) std::cout<<"Exception: PFJets collection empty. Moving to next step"<<std::endl;
+	else{
+//		std::cout<<pfJets->size()<<std::endl;
+//		std::cout<<"Collecting AK4PFJets info"<<std::endl;
 
-    int nrecoJetsAK8 = 0;
-    for(auto j = recoJetsAK8->begin(); j != recoJetsAK8->end(); ++j){
+		nPFJets = 0;
+		for(auto j = pfJets->begin(); j != pfJets->end(); ++j){
         // jet selection
-        if(j->pt() < 100. || abs(j->eta()) > 4.0) continue;
-        t.FillFloatArray("recoJetAK8_Pt",   nrecoJetsAK8, j->pt());
-        t.FillFloatArray("recoJetAK8_Eta",  nrecoJetsAK8, j->eta());
-        t.FillFloatArray("recoJetAK8_Phi",  nrecoJetsAK8, j->phi());
-        t.FillFloatArray("recoJetAK8_E",  nrecoJetsAK8, j->energy());
-        t.FillFloatArray("recoJetAK8_M",  nrecoJetsAK8, j->mass());        
-        int foundGenJet = 0;
-        for (auto gj = genJetsAK8->begin(); gj != genJetsAK8->end(); ++gj)
-        {
-            float dR = ROOT::Math::VectorUtil::DeltaR(j->p4(), gj->p4());
-            if(dR < dRthreshold)
-            {
-                foundGenJet = 1;
+
+			if(j->pt() < pt_jet || fabs(j->eta()) > 4.0) continue;
+//			std::cout<<"pt: "<<j->pt()<<"\tabs(eta): "<<fabs(j->eta())<<"\tmass: "<<j->mass()<<std::endl;
+			t.FillFloatArray("PFJet_Pt",   nPFJets, j->pt());
+			t.FillFloatArray("PFJet_Eta",  nPFJets, j->eta());
+			t.FillFloatArray("PFJet_Phi",  nPFJets, j->phi());
+			t.FillFloatArray("PFJet_E",  nPFJets, j->energy());
+			t.FillFloatArray("PFJet_M",  nPFJets, j->mass());
+ 
+			foundGenJet = 0;
+			idx=0;
+
+            if (isMC){	 
+				t.FillIntArray("PFJet_partonFlav",  nPFJets, j->partonFlavour());
+				t.FillIntArray("PFJet_hadronFlav",  nPFJets, j->hadronFlavour());
+//				std::cout<<"partonFlavour: "<<j->partonFlavour()<<"\thadronflavour: "<<j->hadronFlavour()<<std::endl;
+
+				for (auto gj = genJets->begin(); gj != genJets->end(); ++gj){
+					float dR = reco::deltaR(j->p4(), gj->p4());
+					if(dR < dRthreshold){
+						foundGenJet = 1;
+//						std::cout<<"Found GenJet"<<"\tDeltaR: "<<dR<<"\tIndex: "<<idx<<std::endl;
                 // fill gen jet info
-                t.FillFloatArray("recoJetAK8_GenJetAK8_dR",  nrecoJetsAK8, dR);
-                t.FillIntArray(  "recoJetAK8_GenJetAK8_idx", nrecoJetsAK8, gj - genJets->begin());
-                break;
-            }
-        }
-        t.FillIntArray("recoJetAK8_hasGenJet", nrecoJetsAK8, foundGenJet);
-        
-        nrecoJetsAK8++;
-    }
-    t.FillIntBranch("nrecoJetsAK8", nrecoJetsAK8); 
-    
-    int npfcands=0;
-    for(auto cand=pfCands->begin(); cand != pfCands->end(); ++cand){
-		if(cand->pt() < pt_cand || abs(cand->eta())> 4.0) continue;
-        t.FillFloatArray("pfCand_Pt",   npfcands, cand->pt());
-        t.FillFloatArray("pfCand_Eta",  npfcands, cand->eta());
-        t.FillFloatArray("pfCand_Phi",  npfcands, cand->phi());
-        t.FillFloatArray("pfCand_E",  npfcands, cand->energy());
-        t.FillFloatArray("pfCand_M",  npfcands, cand->mass());        
+						t.FillFloatArray("PFJet_GenJet_dR",  nPFJets, dR);
+						t.FillIntArray(  "PFJet_GenJet_idx", nPFJets, idx);
+						t.FillIntArray("PFJet_hasGenJet", nPFJets, foundGenJet);
+						break;
+					}
+					idx++;
+				}
+			}
+			
+			nPFJets++;
+		}
+		t.FillIntBranch("nPFJets", nPFJets);
 	}
-		    
+
+	if(puppiJets->size()==0) std::cout<<"Exception: PuppiJets collection empty. Moving to next step"<<std::endl;
+	else{
+//		std::cout<<"Collecting AK4PuppiJets info"<<std::endl;
+		nPuppiJets = 0;
+		for(auto j = puppiJets->begin(); j != puppiJets->end(); ++j){
+// jet selection
+			if(j->pt() < pt_jet || fabs(j->eta()) > 4.0) continue;
+//			std::cout<<"pt: "<<j->pt()<<"\tabs(eta): "<<fabs(j->eta())<<"\tmass: "<<j->mass()<<std::endl;
+			t.FillFloatArray("PuppiJet_Pt",   nPuppiJets, j->pt());
+			t.FillFloatArray("PuppiJet_Eta",  nPuppiJets, j->eta());
+			t.FillFloatArray("PuppiJet_Phi",  nPuppiJets, j->phi());
+			t.FillFloatArray("PuppiJet_E",  nPuppiJets, j->energy());
+			t.FillFloatArray("PuppiJet_M",  nPuppiJets, j->mass());        
+			nPuppiJets++;
+		}
+		t.FillIntBranch("nPuppiJets", nPuppiJets);
+	}
+
+	if(recoJetsAK8->size()==0) std::cout<<"Exception: AK8Jets collection empty. Moving to next step"<<std::endl;
+	else{
+//		std::cout<<"Collecting AK8 jets info"<<std::endl;
+		nrecoJetsAK8 = 0;
+		for(auto j = recoJetsAK8->begin(); j != recoJetsAK8->end(); ++j){			
+        // jet selection
+			if(j->pt() < 100.0 || fabs(j->eta()) > 4.0) continue;
+//			std::cout<<"pt: "<<j->pt()<<"\tabs(eta): "<<fabs(j->eta())<<"\tmass: "<<j->mass()<<std::endl;
+			t.FillFloatArray("recoJetAK8_Pt",   nrecoJetsAK8, j->pt());
+			t.FillFloatArray("recoJetAK8_Eta",  nrecoJetsAK8, j->eta());
+			t.FillFloatArray("recoJetAK8_Phi",  nrecoJetsAK8, j->phi());
+			t.FillFloatArray("recoJetAK8_E",  nrecoJetsAK8, j->energy());
+			t.FillFloatArray("recoJetAK8_M",  nrecoJetsAK8, j->mass());
+
+			foundGenJet = 0;
+			idx=0;
+
+			if(isMC){
+				for (auto gj = genJetsAK8->begin(); gj != genJetsAK8->end(); ++gj){
+					float dR = reco::deltaR(j->p4(), gj->p4());
+					if(dR < dRthreshold){
+						foundGenJet = 1;
+                // fill gen jet info
+						t.FillFloatArray("recoJetAK8_GenJetAK8_dR",  nrecoJetsAK8, dR);
+						t.FillIntArray("recoJetAK8_GenJetAK8_idx", nrecoJetsAK8, idx);
+						t.FillIntArray("recoJetAK8_hasGenJet", nrecoJetsAK8, foundGenJet);
+						break;
+					}
+					idx++;
+				}
+			}
+			nrecoJetsAK8++;
+		}
+		t.FillIntBranch("nrecoJetsAK8", nrecoJetsAK8); 
+	}
+
+	if(pfCands->size()==0) std::cout<<"Exception: PFCands collection empty. Moving to next step"<<std::endl;
+	else{
+//		std::cout<<"Collecting PFcands info"<<std::endl;
+		npfcands=0;
+		for(auto cand=pfCands->begin(); cand != pfCands->end(); ++cand){
+
+			if(cand->pt() < pt_cand || fabs(cand->eta())> 4.0) continue;
+
+//			std::cout<<"pt: "<<cand->pt()<<"\tabs(eta): "<<fabs(cand->eta())<<"\tmass: "<<cand->mass()<<std::endl;
+
+			t.FillFloatArray("pfCand_Pt",   npfcands, cand->pt());
+			t.FillFloatArray("pfCand_Eta",  npfcands, cand->eta());
+			t.FillFloatArray("pfCand_Phi",  npfcands, cand->phi());
+			t.FillFloatArray("pfCand_E",  npfcands, cand->energy());
+			t.FillFloatArray("pfCand_M",  npfcands, cand->mass());
+			t.FillFloatArray("pfCand_PuppiWeight", npfcands, cand->puppiWeight());
+			t.FillFloatArray("pfCand_PuppiWeightNoLep", npfcands, cand->puppiWeightNoLep());			
+			npfcands++;
+		}
+		
+		t.FillIntBranch("npfCands", npfcands);
+	}
+    
 /*    int nrecoJetsDR = 0;
     for(auto j = recoJetsDR->begin(); j != recoJetsDR->end(); ++j)
     {
@@ -441,38 +499,50 @@ Analysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     }
     t.FillIntBranch("nrecoJetsDR", nrecoJetsDR);
 */      
-    // loop over gen jets
+
 	if(isMC){
-		int nGenJets = 0;
+//		std::cout<<"Collecting GenJets info"<<std::endl;
+// loop over gen jets
+
+		nGenJets = 0;
 		for(auto j = genJets->begin(); j != genJets->end(); ++j){
-			int i = j - genJets->begin();
-			t.FillFloatArray("GenJet_Pt",  i, j->pt());
-			t.FillFloatArray("GenJet_Eta", i, j->eta());
-			t.FillFloatArray("GenJet_Phi", i, j->phi());
-			t.FillFloatArray("GenJet_E", i, j->energy());        
-			t.FillIntArray(  "GenJet_ID",  i, j->pdgId());
+			
+			t.FillFloatArray("GenJet_Pt",  nGenJets, j->pt());
+			t.FillFloatArray("GenJet_Eta", nGenJets, j->eta());
+			t.FillFloatArray("GenJet_Phi", nGenJets, j->phi());
+			t.FillFloatArray("GenJet_E", nGenJets, j->energy());        
+			t.FillIntArray(  "GenJet_ID",  nGenJets, j->pdgId());
 			nGenJets++;
 		}
 		t.FillIntBranch("nGenJets", nGenJets);
 		
-		int nGenJetsAK8 = 0;
+		nGenJetsAK8 = 0;
 		for(auto j = genJetsAK8->begin(); j != genJetsAK8->end(); ++j){
-			int i = j - genJetsAK8->begin();
-			t.FillFloatArray("GenJetAK8_Pt",  i, j->pt());
-			t.FillFloatArray("GenJetAK8_Eta", i, j->eta());
-			t.FillFloatArray("GenJetAK8_Phi", i, j->phi());
-			t.FillFloatArray("GenJetAK8_E", i, j->energy());        
+			t.FillFloatArray("GenJetAK8_Pt",  nGenJetsAK8, j->pt());
+			t.FillFloatArray("GenJetAK8_Eta", nGenJetsAK8, j->eta());
+			t.FillFloatArray("GenJetAK8_Phi", nGenJetsAK8, j->phi());
+			t.FillFloatArray("GenJetAK8_E", nGenJetsAK8, j->energy());        
 			nGenJetsAK8++;
 		}
 		t.FillIntBranch("nGenJetsAK8", nGenJetsAK8);
 	}
 	
+//	std::cout<<"Collecting MET info"<<std::endl;
+
 	pf_met = pfMET->front().pt();
+	pf_met_phi = pfMET->front().phi();
+	
 	puppi_met = puppiMET->front().pt();
+	puppi_met_phi = puppiMET->front().phi();
 
 	t.FillFloatBranch("pfMET", pf_met);
-	t.FillFloatBranch("puppiMET",puppi_met);
+	t.FillFloatBranch("pfMET_Phi", pf_met_phi);
 	
+	t.FillFloatBranch("puppiMET",puppi_met);
+	t.FillFloatBranch("puppiMET_Phi",puppi_met_phi);
+	
+
+//	std::cout<<"Collecting PU info"<<std::endl;	
 	if(isMC){
 		for(auto PVI = PUInfo->begin(); PVI != PUInfo->end(); ++PVI) {
 			nTruePU = PVI->getTrueNumInteractions(); 
@@ -480,9 +550,11 @@ Analysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 		t.FillIntBranch("nTruePU", nTruePU);
 	}
 
-	nPV = PVInfo->size();	
-    t.FillIntBranch("nPV", nPV);
-
+	nPV = PVInfo->size();
+	t.FillIntBranch("nPV", nPV);
+	
+//	std::cout<<"Filling the tree"<<std::endl;
+	tree->Fill();
 
 #ifdef THIS_IS_AN_EVENT_EXAMPLE
    Handle<ExampleData> pIn;

@@ -42,7 +42,7 @@ class TreeWriter{
         std::map<TString, long*>    intArrays;
         std::map<TString, TString>  arrayLength;
 
-        int maxLength = 500;
+        int maxLength = 500000;
         
 };
 
