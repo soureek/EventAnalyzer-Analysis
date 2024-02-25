@@ -13,7 +13,7 @@ scram b -j 9
 
 **Running instructions:**
   
-  - `test/runAnalysis_cfg.py` is the configuration file to do `cmsRun` and it creates an output file `Output.root`. The Analysis code is defined in `plugins/Analysis.cc`
+  - `test/runAnalysis_cfg.py` is the configuration file to do `cmsRun` and it creates an output file `OutFile_MC.root` or `OutFile_data.root`. The Analysis code is defined in `plugins/Analysis.cc`
   
   - Set recommended GlobalTag for MC and Data separately using `options.globalTag` in the python configuration or with command-line arguments with `cmsRun`
     as shown below.
@@ -21,11 +21,11 @@ scram b -j 9
   - For MC:   
     ```
     cd $CMSSW_BASE/src/EventAnalyzer/Analysis/test
-    cmsRun runAnalysis_cfg.py inputFile=<path-to-input-file> isMC=True maxEvts=1000 globalTag=<Recommended-Global-Tag>
+    cmsRun runAnalysis_cfg.py isMC=True maxEvts=1000
     ```
   
   - For Data:
     ```
     cd $CMSSW_BASE/src/EventAnalyzer/Analysis/test
-    cmsRun runAnalysis_cfg.py inputFile=<path-to-input-file> isMC=False maxEvts=1000 globalTag=<Recommended-Global-Tag>
+    cmsRun runAnalysis_cfg.py isMC=False maxEvts=1000
     ```
