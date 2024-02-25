@@ -289,6 +289,26 @@ Analysis::Analysis(const edm::ParameterSet& iConfig)
 		t.InitFloatArray("GenJetAK8_E",  "nGenJetsAK8");
 	}
 	
+	
+	// Puppi jet values
+
+	t.InitIntBranch("nPuppiJets");
+	t.InitFloatArray("PuppiJet_Pt",  "nPuppiJets");
+	t.InitFloatArray("PuppiJet_Eta", "nPuppiJets");
+	t.InitFloatArray("PuppiJet_Phi", "nPuppiJets");
+	t.InitFloatArray("PuppiJet_E", "nPuppiJets");    
+//  t.InitIntArray("PuppiJet_partonFlav", "nPuppiJets");
+//  t.InitIntArray("PuppiJet_hadronFlav", "nPuppiJets");
+
+
+	// AK8 jet values
+		
+    t.InitIntBranch("nrecoJetsAK8");
+    t.InitFloatArray("recoJetAK8_Pt",  "nrecoJetsAK8");
+    t.InitFloatArray("recoJetAK8_Eta", "nrecoJetsAK8");
+    t.InitFloatArray("recoJetAK8_Phi", "nrecoJetsAK8");
+    t.InitFloatArray("recoJetAK8_E", "nrecoJetsAK8");    
+
 /*
 // DR jet values
 	t.InitIntBranch("nrecoJetsDR");
@@ -330,7 +350,7 @@ void
 Analysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
 	using namespace edm;
-	t.SetDefaultValues();
+	t.SetDeafultValues();
 	
 	t.FillIntBranch("eventNumber",iEvent.id().event());
 	t.FillIntBranch("runNumber",iEvent.id().run());
@@ -391,7 +411,7 @@ Analysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 					if(dR < dRthreshold){
 						foundGenJet = 1;
 //						std::cout<<"Found GenJet"<<"\tDeltaR: "<<dR<<"\tIndex: "<<idx<<std::endl;
-                // fill gen jet info
+// fill gen jet info
 						t.FillFloatArray("PFJet_GenJet_dR",  nPFJets, dR);
 						t.FillIntArray(  "PFJet_GenJet_idx", nPFJets, idx);
 						t.FillIntArray("PFJet_hasGenJet", nPFJets, foundGenJet);
@@ -482,6 +502,7 @@ Analysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 		
 		t.FillIntBranch("npfCands", npfcands);
 	}
+    
     
 /*    int nrecoJetsDR = 0;
     for(auto j = recoJetsDR->begin(); j != recoJetsDR->end(); ++j)
