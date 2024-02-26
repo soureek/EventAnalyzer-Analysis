@@ -3,7 +3,7 @@ EventAnalyzer for Analysis with CMS Open Data
 Follow [CMS Open Data Workshop](https://cms-opendata-workshop.github.io/workshopwhepp-lesson-docker/03-docker-for-cms-opendata/index.html) to set up the 
 docker container.
 
-**Setup instrauctions:**
+**Setup instructions:**
 ```
 cd CMSSW_7_6_7/src/
 cmsenv
