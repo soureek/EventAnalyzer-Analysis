@@ -350,7 +350,7 @@ void
 Analysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
 	using namespace edm;
-	t.SetDeafultValues();
+	t.SetDefaultValues();
 	
 	t.FillIntBranch("eventNumber",iEvent.id().event());
 	t.FillIntBranch("runNumber",iEvent.id().run());
